@@ -46,8 +46,8 @@ var layers = {
   }
 };
 
-const drawable_width = 400;
-const drawable_height = 300;
+const drawable_width = 800;
+const drawable_height = 600;
 
 for(key in layers) {
   var layer = layers[key];
@@ -121,43 +121,87 @@ var camera = {
   roll: 0
 };
 
+const sun = {
+  x: -2, y: 20, z: -5
+};
 
-var tile = [
-  [
+const cube = {
+  origin: { x: 0, y: 2, z: 10 },
+  polygons: [
     {
-      x: -2,
-      y: 0,
-      z: 2
+      colour: [255, 0, 0],
+      points: [
+        // floor 1
+        { x: -1, y: -1, z: -1 },
+        { x: -1, y: -1, z: 1 },
+        { x: 1, y: -1, z: 1 }
+      ]
     },
     {
-      x: 2,
-      y: 0,
-      z: 2
+      colour: [255, 0, 0],
+      points: [
+        // floor 2
+        { x: -1, y: -1, z: -1 },
+        { x: 1, y: -1, z: 1 },
+        { x: 1, y: -1, z: -1 }
+      ]
     },
     {
-      x: 2,
-      y: 0,
-      z: 6
-    }
-  ],
-  [
-    {
-      x: -2,
-      y: 0,
-      z: 2
+      colour: [155, 0, 0],
+      points: [
+        // left wall 1
+        { x: -1, y: -1, z: -1 },
+        { x: -1, y: 1, z: -1 },
+        { x: -1, y: 1, z: 1 },
+      ]
     },
     {
-      x: 2,
-      y: 0,
-      z: 6
+      colour: [155, 0, 0],
+      points: [
+        // left wall 2
+        { x: -1, y: -1, z: -1 },
+        { x: -1, y: 1, z: 1 },
+        { x: -1, y: -1, z: 1 },
+      ]
     },
     {
-      x: -2,
-      y: 0,
-      z: 6
+      colour: [55, 0, 0],
+      points: [
+        // roof 1
+        { x: -1, y: 1, z: -1 },
+        { x: -1, y: 1, z: 1 },
+        { x: 1, y: 1, z: 1 }
+      ]
+    },
+    {
+      colour: [55, 0, 0],
+      points: [
+        // roof 2
+        { x: -1, y: 1, z: -1 },
+        { x: 1, y: 1, z: 1 },
+        { x: 1, y: 1, z: -1 },
+      ]
+    },
+    {
+      colour: [155, 0, 0],
+      points: [
+        // right wall 1
+        { x: 1, y: -1, z: -1 },
+        { x: 1, y: 1, z: -1 },
+        { x: 1, y: 1, z: 1 },
+      ]
+    },
+    {
+      colour: [155, 0, 0],
+      points: [
+        // right wall 2
+        { x: 1, y: -1, z: -1 },
+        { x: 1, y: 1, z: 1 },
+        { x: 1, y: -1, z: 1 },
+      ]
     }
   ]
-]
+};
 
 function render_scene() {
   const start_time = performance.now();
@@ -173,12 +217,25 @@ function render_scene() {
   layers.map.context.fillStyle = "rgb(150, 150, 150)";
   layers.map.context.fillRect(0, 0, layers.map.canvas.width, layers.map.canvas.height);
 
-  for (var i = 0; i < tile.length; i++) {
-    var triangle = tile[i];
+  render_object(cube);
+
+  frame_counter++;
+
+  const execution_time = performance.now() - start_time;
+
+  setTimeout(render_scene, Math.max(TARGET_FRAME_TIME - execution_time, 0));
+}
+
+function render_object(object) {
+  for (var i = 0; i < object.polygons.length; i++) {
+    const triangle = object.polygons[i];
     var localised_triangle = [];
 
-    for (var j = 0; j < triangle.length; j++) {
-      var point = triangle[j];
+    for (var j = 0; j < triangle.points.length; j++) {
+      var point = triangle.points[j];
+
+      point = globalize_point(point, object.origin);
+
       localised_triangle.push(localise_point(point, camera));
     }
 
@@ -219,7 +276,7 @@ function render_scene() {
       }
     }
 
-    layers.world.context.fillStyle = "rgb(200, 0, 0)";
+    layers.world.context.fillStyle = `rgb(${triangle.colour.join(', ')})`;
 
     layers.world.context.beginPath();
 
@@ -239,15 +296,14 @@ function render_scene() {
     layers.world.context.fill();
     layers.world.context.closePath();
 
-
     // map polygons
     layers.map.context.fillStyle = "rgb(200, 0, 0)";
 
     layers.map.context.beginPath();
 
     for (j = 0; j < localised_triangle.length; j++) {
-      var x = (localised_triangle[j].x * 5) + (layers.map.canvas.width / 2);
-      var z = (layers.map.canvas.height / 2) - (localised_triangle[j].z * 5);
+      var x = (localised_triangle[j].x * 10) + (layers.map.canvas.width / 2);
+      var z = (layers.map.canvas.height / 2) - (localised_triangle[j].z * 10);
 
       if (j === 0) {
         layers.map.context.moveTo(x, z);
@@ -260,12 +316,14 @@ function render_scene() {
     layers.map.context.fill();
     layers.map.context.closePath();
   }
+}
 
-  frame_counter++;
-
-  const execution_time = performance.now() - start_time;
-
-  setTimeout(render_scene, Math.max(TARGET_FRAME_TIME - execution_time, 0));
+function globalize_point(point, origin) {
+  return {
+    x: point.x + origin.x,
+    y: point.y + origin.y,
+    z: point.z + origin.z
+  }
 }
 
 function localise_point(point, viewer) {
@@ -275,7 +333,7 @@ function localise_point(point, viewer) {
 
   // translate point based on viewer angles
   // x
-  // calcualte angle from world to point
+  // calculate angle from world to point
   var tan_world_angle_to_point = x_distance / z_distance;
   if (isNaN(tan_world_angle_to_point)) {
     tan_world_angle_to_point = 0;
@@ -339,6 +397,20 @@ function visible_point_on_line(from, to) {
   }
 
   return extrapolated;
+}
+
+function light_face(triangle, light) {
+  // find centre of triangle - average?
+  const triangle_centre = {
+    x: (triangle[0].x + triangle[1].x + triangle[2].x) / 3,
+    y: (triangle[0].y + triangle[1].y + triangle[2].y) / 3,
+    z: (triangle[0].z + triangle[1].z + triangle[2].z) / 3
+  }
+
+  // calculate triangle's normal at centre
+
+  // calculate angle between light and centre, and normal
+  // use cosine, as and angle of zero means full intensity, and cos(0) = 1
 }
 
 // function two_points_to_line(point_a, point_b) {
@@ -424,6 +496,10 @@ function physics() {
         case ",":
           camera.z += Math.sin(camera.yaw) * 0.05;
           camera.x -= Math.cos(camera.yaw) * 0.05;
+          break;
+
+        case " ":
+          camera.y += 0.05;
           break;
 
       }
