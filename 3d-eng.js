@@ -1,5 +1,17 @@
 // JS rounding errors mean things that should be treated as zero aren't always, so use this hack
 const ZERO = 0.00001;
+const TARGET_FPS = 60;
+const TARGET_FRAME_TIME = 1000 / TARGET_FPS;
+
+var frame_counter = 0;
+
+var pressed_keys = {};
+
+const fps_display = document.createElement('span');
+fps_display.style.position = 'absolute';
+fps_display.style.top = '10px';
+fps_display.style.right = '10px';
+document.body.appendChild(fps_display);
 
 var layers = {
   world_grid: {
@@ -148,6 +160,8 @@ var tile = [
 ]
 
 function render_scene() {
+  const start_time = performance.now();
+
   layers.debug.context.clearRect(0, 0, layers.debug.canvas.width, layers.debug.canvas.height);
   layers.map.context.clearRect(0, 0, layers.map.canvas.width, layers.map.canvas.height);
   layers.world.context.clearRect(0, 0, layers.world.canvas.width, layers.world.canvas.height);
@@ -247,7 +261,11 @@ function render_scene() {
     layers.map.context.closePath();
   }
 
+  frame_counter++;
 
+  const execution_time = performance.now() - start_time;
+
+  setTimeout(render_scene, Math.max(TARGET_FRAME_TIME - execution_time, 0));
 }
 
 function localise_point(point, viewer) {
@@ -361,37 +379,60 @@ function pretty_much_zero(value) {
   return Math.round(value * 100000000000) == 0;
 }
 
-render_scene();
+function update_fps() {
+  fps_display.innerText = `${frame_counter} FPS`;
+  frame_counter = 0;
+  setTimeout(update_fps, 1000);
+}
+
+document.addEventListener('keydown', function (e) {
+  pressed_keys[e.key] = true;
+});
+
 
 document.addEventListener('keyup', function (e) {
-  switch (e.key) {
-    case "ArrowRight":
-      camera.yaw += 5 * (Math.PI / 180);
-      break;
-
-    case "ArrowLeft":
-      camera.yaw -= 5 * (Math.PI / 180);
-      break;
-
-    case "ArrowUp":
-      camera.x += Math.sin(camera.yaw) * 0.2;
-      camera.z += Math.cos(camera.yaw) * 0.2;
-      break;
-
-    case "ArrowDown":
-      camera.x -= Math.sin(camera.yaw) * 0.2;
-      camera.z -= Math.cos(camera.yaw) * 0.2;
-      break;
-
-    case ".":
-      camera.z -= Math.sin(camera.yaw) * 0.2;
-      camera.x += Math.cos(camera.yaw) * 0.2;
-      break;
-
-    case ",":
-      camera.z += Math.sin(camera.yaw) * 0.2;
-      camera.x -= Math.cos(camera.yaw) * 0.2;
-      break;
-  }
-  render_scene();
+  pressed_keys[e.key] = false;
 });
+
+function physics() {
+  for(var key in pressed_keys) {
+    if (pressed_keys[key]) {
+      switch (key) {
+        case "ArrowRight":
+          camera.yaw += 1 * (Math.PI / 180);
+          break;
+
+        case "ArrowLeft":
+          camera.yaw -= 1 * (Math.PI / 180);
+          break;
+
+        case "ArrowUp":
+          camera.x += Math.sin(camera.yaw) * 0.05;
+          camera.z += Math.cos(camera.yaw) * 0.05;
+          break;
+
+        case "ArrowDown":
+          camera.x -= Math.sin(camera.yaw) * 0.05;
+          camera.z -= Math.cos(camera.yaw) * 0.05;
+          break;
+
+        case ".":
+          camera.z -= Math.sin(camera.yaw) * 0.05;
+          camera.x += Math.cos(camera.yaw) * 0.05;
+          break;
+
+        case ",":
+          camera.z += Math.sin(camera.yaw) * 0.05;
+          camera.x -= Math.cos(camera.yaw) * 0.05;
+          break;
+
+      }
+    }
+  }
+
+  setTimeout(physics, 10);
+}
+
+render_scene();
+update_fps();
+physics();
