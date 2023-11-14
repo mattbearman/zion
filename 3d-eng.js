@@ -262,39 +262,34 @@ function render_object(object) {
             if (j == 1) {
               projected_triangle.push(project_point(visible_point_on_line(localised_triangle[0], point)));
               projected_triangle.push(project_point(visible_point_on_line(localised_triangle[0], localised_triangle[2])));
+
+              // no need for the last iteration, as the triangle is now projected
+              j = 3;
             }
 
-            // otherwise create a quad
+            // otherwise create an extra triangle to essentially make a quad
             else if (j == 2) {
-              // need to add two points to the projected shape to turn a tri into a quad
-              // start with the point on the line from 0 -> 1, so that it creates the correct loop of points
-              projected_triangle.push(project_point(visible_point_on_line(localised_triangle[1], point)));
-              projected_triangle.push(project_point(visible_point_on_line(localised_triangle[0], point)));
+              const extrapolated_projected_points = [
+                project_point(visible_point_on_line(localised_triangle[0], point)),
+                project_point(visible_point_on_line(localised_triangle[1], point))
+              ]
+
+              projected_triangle.push(extrapolated_projected_points[0]);
+
+              const extra_projected_triangle = [
+                extrapolated_projected_points[0],
+                projected_triangle[1],
+                extrapolated_projected_points[1],
+              ]
+
+              draw_triangle(extra_projected_triangle, layers.world, triangle.colour);
             }
           }
         }
       }
     }
 
-    layers.world.context.fillStyle = `rgb(${triangle.colour.join(', ')})`;
-
-    layers.world.context.beginPath();
-
-    for (var j = 0; j < projected_triangle.length; j++) {
-      var projected_point = projected_triangle[j];
-
-      var canvas_point = projected_relative_to_canvas(projected_point, layers.world.canvas);
-
-      if (j === 0) {
-        layers.world.context.moveTo(canvas_point.x, canvas_point.y);
-      }
-      else {
-        layers.world.context.lineTo(canvas_point.x, canvas_point.y);
-      }
-    }
-
-    layers.world.context.fill();
-    layers.world.context.closePath();
+    draw_triangle(projected_triangle, layers.world, triangle.colour);
 
     // map polygons
     layers.map.context.fillStyle = "rgb(200, 0, 0)";
@@ -413,6 +408,28 @@ function light_face(triangle, light) {
   // use cosine, as and angle of zero means full intensity, and cos(0) = 1
 }
 
+function draw_triangle(triangle, layer, colour) {
+  layer.context.fillStyle = `rgb(${colour.join(', ')})`;
+
+  layer.context.beginPath();
+
+  for (var j = 0; j < triangle.length; j++) {
+    const projected_point = triangle[j];
+
+    const canvas_point = projected_relative_to_canvas(projected_point, layer.canvas);
+
+    if (j === 0) {
+      layer.context.moveTo(canvas_point.x, canvas_point.y);
+    }
+    else {
+      layer.context.lineTo(canvas_point.x, canvas_point.y);
+    }
+  }
+
+  layer.context.fill();
+  layer.context.closePath();
+}
+
 // function two_points_to_line(point_a, point_b) {
 //   const x = point_a.x - point_b.x;
 //   const y = point_a.y - point_b.y;
@@ -437,12 +454,14 @@ function light_face(triangle, light) {
 // }
 
 function projected_relative_to_canvas(relative_point, canvas) {
-  relative_point.x /= width_of_view;
-  relative_point.y /= height_of_view;
+  const point_as_multiplier = {
+    x: relative_point.x / width_of_view,
+    y: relative_point.y / height_of_view
+  };
 
   return {
-    x: Math.round(relative_point.x * canvas.width) + (canvas.width / 2),
-    y: Math.round(relative_point.y * canvas.height) + (canvas.height / 2)
+    x: Math.round(point_as_multiplier.x * canvas.width) + (canvas.width / 2),
+    y: Math.round(point_as_multiplier.y * canvas.height) + (canvas.height / 2)
   };
 }
 
