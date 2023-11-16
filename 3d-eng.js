@@ -7,6 +7,8 @@ var frame_counter = 0;
 
 var pressed_keys = {};
 
+var log_frame = false;
+
 const fps_display = document.createElement('span');
 fps_display.style.position = 'absolute';
 fps_display.style.top = '10px';
@@ -129,15 +131,15 @@ const sun = {
 const cube = {
   origin: { x: 0, y: 2, z: 10 },
   polygons: [
-    // {
-    //   colour: [255, 0, 0],
-    //   points: [
-    //     // floor 1
-    //     { x: -1, y: -1, z: -1 },
-    //     { x: -1, y: -1, z: 1 },
-    //     { x: 1, y: -1, z: 1 }
-    //   ]
-    // },
+    {
+      colour: [255, 0, 0],
+      points: [
+        // floor 1
+        { x: -1, y: -1, z: -1 },
+        { x: -1, y: -1, z: 1 },
+        { x: 1, y: -1, z: 1 }
+      ]
+    },
     {
       colour: [255, 0, 0],
       points: [
@@ -147,60 +149,60 @@ const cube = {
         { x: 1, y: -1, z: -1 }
       ]
     },
-    // {
-    //   colour: [155, 0, 0],
-    //   points: [
-    //     // left wall 1
-    //     { x: -1, y: -1, z: -1 },
-    //     { x: -1, y: 1, z: -1 },
-    //     { x: -1, y: 1, z: 1 },
-    //   ]
-    // },
-    // {
-    //   colour: [155, 0, 0],
-    //   points: [
-    //     // left wall 2
-    //     { x: -1, y: -1, z: -1 },
-    //     { x: -1, y: 1, z: 1 },
-    //     { x: -1, y: -1, z: 1 },
-    //   ]
-    // },
-    // {
-    //   colour: [55, 0, 0],
-    //   points: [
-    //     // roof 1
-    //     { x: -1, y: 1, z: -1 },
-    //     { x: -1, y: 1, z: 1 },
-    //     { x: 1, y: 1, z: 1 }
-    //   ]
-    // },
-    // {
-    //   colour: [55, 0, 0],
-    //   points: [
-    //     // roof 2
-    //     { x: -1, y: 1, z: -1 },
-    //     { x: 1, y: 1, z: 1 },
-    //     { x: 1, y: 1, z: -1 },
-    //   ]
-    // },
-    // {
-    //   colour: [155, 0, 0],
-    //   points: [
-    //     // right wall 1
-    //     { x: 1, y: -1, z: -1 },
-    //     { x: 1, y: 1, z: -1 },
-    //     { x: 1, y: 1, z: 1 },
-    //   ]
-    // },
-    // {
-    //   colour: [155, 0, 0],
-    //   points: [
-    //     // right wall 2
-    //     { x: 1, y: -1, z: -1 },
-    //     { x: 1, y: 1, z: 1 },
-    //     { x: 1, y: -1, z: 1 },
-    //   ]
-    // }
+    {
+      colour: [155, 0, 0],
+      points: [
+        // left wall 1
+        { x: -1, y: -1, z: -1 },
+        { x: -1, y: 1, z: -1 },
+        { x: -1, y: 1, z: 1 },
+      ]
+    },
+    {
+      colour: [155, 0, 0],
+      points: [
+        // left wall 2
+        { x: -1, y: -1, z: -1 },
+        { x: -1, y: 1, z: 1 },
+        { x: -1, y: -1, z: 1 },
+      ]
+    },
+    {
+      colour: [55, 0, 0],
+      points: [
+        // roof 1
+        { x: -1, y: 1, z: -1 },
+        { x: -1, y: 1, z: 1 },
+        { x: 1, y: 1, z: 1 }
+      ]
+    },
+    {
+      colour: [55, 0, 0],
+      points: [
+        // roof 2
+        { x: -1, y: 1, z: -1 },
+        { x: 1, y: 1, z: 1 },
+        { x: 1, y: 1, z: -1 },
+      ]
+    },
+    {
+      colour: [155, 0, 0],
+      points: [
+        // right wall 1
+        { x: 1, y: -1, z: -1 },
+        { x: 1, y: 1, z: -1 },
+        { x: 1, y: 1, z: 1 },
+      ]
+    },
+    {
+      colour: [155, 0, 0],
+      points: [
+        // right wall 2
+        { x: 1, y: -1, z: -1 },
+        { x: 1, y: 1, z: 1 },
+        { x: 1, y: -1, z: 1 },
+      ]
+    }
   ]
 };
 
@@ -226,6 +228,7 @@ function render_scene() {
 
   layers.world.context.putImageData(layers.world.bitmap, 0, 0);
 
+  log_frame = false;
 
   const execution_time = performance.now() - start_time;
 
@@ -295,7 +298,9 @@ function render_object(object) {
       }
     }
 
-    draw_triangle(projected_triangle, layers.world, triangle.colour);
+    if (projected_triangle.length == 3) {
+      draw_triangle(projected_triangle, layers.world, triangle.colour);
+    }
 
     // map polygons
     layers.map.context.fillStyle = "rgb(200, 0, 0)";
@@ -415,6 +420,7 @@ function light_face(triangle, light) {
 }
 
 function draw_triangle(triangle, layer, colour) {
+  // Turn relative point coords to pixel coords
   for (var i = 0; i < triangle.length; i++) {
     triangle[i] = projected_relative_to_canvas(triangle[i], layer.canvas);
   }
@@ -428,54 +434,35 @@ function draw_triangle(triangle, layer, colour) {
   const ratio_0_to_2 = (triangle[2].y - triangle[0].y) / (triangle[2].x - triangle[0].x);
   const ratio_1_to_2 = (triangle[2].y - triangle[1].y) / (triangle[2].x - triangle[1].x);
 
-  // TODO: limit these loops based on canvas size
   for (var x = Math.max(0, triangle[0].x); x < Math.min(triangle[1].x, layer.canvas.width); x++) {
     const x_offset = x - triangle[0].x;
 
     var y_limits = [
-      Math.max(0, Math.floor(triangle[0].y + (x_offset * ratio_0_to_1))),
-      Math.min(Math.floor(triangle[0].y + (x_offset * ratio_0_to_2)), layer.canvas.height)
-    ];
+      Math.floor(triangle[0].y + (x_offset * ratio_0_to_1)),
+      Math.floor(triangle[0].y + (x_offset * ratio_0_to_2))
+    ].sort((a, b) => a > b);
 
-    y_limits.sort();
-
-    for (var y = y_limits[0]; y < y_limits[1]; y++) {
-      draw_pixel(layer, {x:x, y:y}, 1, colour);
-    }
-  }
-
-  for (var x = Math.max(0, triangle[1].x); x < Math.min(triangle[2].x, layer.canvas.width); x++) {
-    // const x_offset = x - triangle[1].x;
-
-    var y_limits = [
-      Math.max(0, Math.floor(triangle[0].y + ((x - triangle[0].x) * ratio_0_to_2))),
-      Math.min(Math.floor(triangle[1].y + ((x - triangle[1].x) * ratio_1_to_2)))
-    ];
-
-    y_limits.sort();
+    y_limits[0] = Math.max(0, y_limits[0]);
+    y_limits[1] = Math.min(y_limits[1], layer.canvas.height);
 
     for (var y = y_limits[0]; y < y_limits[1]; y++) {
       draw_pixel(layer, { x: x, y: y }, 1, colour);
     }
   }
 
-  // for (var j = 0; j < triangle.length; j++) {
-  //   const projected_point = triangle[j];
+  for (var x = Math.max(0, triangle[1].x); x < Math.min(triangle[2].x, layer.canvas.width); x++) {
+    var y_limits = [
+      Math.floor(triangle[0].y + ((x - triangle[0].x) * ratio_0_to_2)),
+      Math.floor(triangle[1].y + ((x - triangle[1].x) * ratio_1_to_2))
+    ].sort((a, b) => a > b);
 
-    // const canvas_point = projected_relative_to_canvas(projected_point, layer.canvas);
+    y_limits[0] = Math.max(0, y_limits[0]);
+    y_limits[1] = Math.min(y_limits[1], layer.canvas.height);
 
-    // draw_pixel(layer, projected_point, 1, colour);
-
-    // if (j === 0) {
-    //   layer.context.moveTo(canvas_point.x, canvas_point.y);
-    // }
-    // else {
-    //   layer.context.lineTo(canvas_point.x, canvas_point.y);
-    // }
-  // }
-
-  // layer.context.fill();
-  // layer.context.closePath();
+    for (var y = y_limits[0]; y < y_limits[1]; y++) {
+      draw_pixel(layer, { x: x, y: y }, 1, colour);
+    }
+  }
 }
 
 function draw_pixel(layer, point, relative_z, colour) {
@@ -490,9 +477,6 @@ function draw_pixel(layer, point, relative_z, colour) {
   layer.bitmap.data[data_start + 1] = colour[1];
   layer.bitmap.data[data_start +2] = colour[2];
   layer.bitmap.data[data_start] = 255;
-
-  // layer.context.fillStyle = `rgb(${colour.join(', ')})`;
-  // layer.context.fillRect(point.x, point.y, 1, 1);
 }
 
 // function two_points_to_line(point_a, point_b) {
@@ -541,6 +525,12 @@ function update_fps() {
   setTimeout(update_fps, 1000);
 }
 
+function frame_logger(data) {
+  if (log_frame) {
+    console.log(data);
+  }
+}
+
 document.addEventListener('keydown', function (e) {
   pressed_keys[e.key] = true;
 });
@@ -580,6 +570,10 @@ function physics() {
         case ",":
           camera.z += Math.sin(camera.yaw) * 0.05;
           camera.x -= Math.cos(camera.yaw) * 0.05;
+          break;
+
+        case "d":
+          log_frame = true;
           break;
 
         case " ":
