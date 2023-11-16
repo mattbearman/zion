@@ -18,7 +18,8 @@ var layers = {
     canvas: document.createElement("canvas"),
     context: null,
     size: 1,
-    zIndex: 200
+    zIndex: 200,
+    bitmap: null
   },
   map_grid: {
     canvas: document.createElement("canvas"),
@@ -128,15 +129,15 @@ const sun = {
 const cube = {
   origin: { x: 0, y: 2, z: 10 },
   polygons: [
-    {
-      colour: [255, 0, 0],
-      points: [
-        // floor 1
-        { x: -1, y: -1, z: -1 },
-        { x: -1, y: -1, z: 1 },
-        { x: 1, y: -1, z: 1 }
-      ]
-    },
+    // {
+    //   colour: [255, 0, 0],
+    //   points: [
+    //     // floor 1
+    //     { x: -1, y: -1, z: -1 },
+    //     { x: -1, y: -1, z: 1 },
+    //     { x: 1, y: -1, z: 1 }
+    //   ]
+    // },
     {
       colour: [255, 0, 0],
       points: [
@@ -146,60 +147,60 @@ const cube = {
         { x: 1, y: -1, z: -1 }
       ]
     },
-    {
-      colour: [155, 0, 0],
-      points: [
-        // left wall 1
-        { x: -1, y: -1, z: -1 },
-        { x: -1, y: 1, z: -1 },
-        { x: -1, y: 1, z: 1 },
-      ]
-    },
-    {
-      colour: [155, 0, 0],
-      points: [
-        // left wall 2
-        { x: -1, y: -1, z: -1 },
-        { x: -1, y: 1, z: 1 },
-        { x: -1, y: -1, z: 1 },
-      ]
-    },
-    {
-      colour: [55, 0, 0],
-      points: [
-        // roof 1
-        { x: -1, y: 1, z: -1 },
-        { x: -1, y: 1, z: 1 },
-        { x: 1, y: 1, z: 1 }
-      ]
-    },
-    {
-      colour: [55, 0, 0],
-      points: [
-        // roof 2
-        { x: -1, y: 1, z: -1 },
-        { x: 1, y: 1, z: 1 },
-        { x: 1, y: 1, z: -1 },
-      ]
-    },
-    {
-      colour: [155, 0, 0],
-      points: [
-        // right wall 1
-        { x: 1, y: -1, z: -1 },
-        { x: 1, y: 1, z: -1 },
-        { x: 1, y: 1, z: 1 },
-      ]
-    },
-    {
-      colour: [155, 0, 0],
-      points: [
-        // right wall 2
-        { x: 1, y: -1, z: -1 },
-        { x: 1, y: 1, z: 1 },
-        { x: 1, y: -1, z: 1 },
-      ]
-    }
+    // {
+    //   colour: [155, 0, 0],
+    //   points: [
+    //     // left wall 1
+    //     { x: -1, y: -1, z: -1 },
+    //     { x: -1, y: 1, z: -1 },
+    //     { x: -1, y: 1, z: 1 },
+    //   ]
+    // },
+    // {
+    //   colour: [155, 0, 0],
+    //   points: [
+    //     // left wall 2
+    //     { x: -1, y: -1, z: -1 },
+    //     { x: -1, y: 1, z: 1 },
+    //     { x: -1, y: -1, z: 1 },
+    //   ]
+    // },
+    // {
+    //   colour: [55, 0, 0],
+    //   points: [
+    //     // roof 1
+    //     { x: -1, y: 1, z: -1 },
+    //     { x: -1, y: 1, z: 1 },
+    //     { x: 1, y: 1, z: 1 }
+    //   ]
+    // },
+    // {
+    //   colour: [55, 0, 0],
+    //   points: [
+    //     // roof 2
+    //     { x: -1, y: 1, z: -1 },
+    //     { x: 1, y: 1, z: 1 },
+    //     { x: 1, y: 1, z: -1 },
+    //   ]
+    // },
+    // {
+    //   colour: [155, 0, 0],
+    //   points: [
+    //     // right wall 1
+    //     { x: 1, y: -1, z: -1 },
+    //     { x: 1, y: 1, z: -1 },
+    //     { x: 1, y: 1, z: 1 },
+    //   ]
+    // },
+    // {
+    //   colour: [155, 0, 0],
+    //   points: [
+    //     // right wall 2
+    //     { x: 1, y: -1, z: -1 },
+    //     { x: 1, y: 1, z: 1 },
+    //     { x: 1, y: -1, z: 1 },
+    //   ]
+    // }
   ]
 };
 
@@ -217,9 +218,14 @@ function render_scene() {
   layers.map.context.fillStyle = "rgb(150, 150, 150)";
   layers.map.context.fillRect(0, 0, layers.map.canvas.width, layers.map.canvas.height);
 
+  layers.world.bitmap = layers.world.context.getImageData(0, 0, layers.world.canvas.width, layers.world.canvas.height);
+
   render_object(cube);
 
   frame_counter++;
+
+  layers.world.context.putImageData(layers.world.bitmap, 0, 0);
+
 
   const execution_time = performance.now() - start_time;
 
@@ -409,25 +415,84 @@ function light_face(triangle, light) {
 }
 
 function draw_triangle(triangle, layer, colour) {
-  layer.context.fillStyle = `rgb(${colour.join(', ')})`;
+  for (var i = 0; i < triangle.length; i++) {
+    triangle[i] = projected_relative_to_canvas(triangle[i], layer.canvas);
+  }
 
-  layer.context.beginPath();
+  // sort points so left most is first
+  triangle.sort((a, b) => a.x > b.x);
 
-  for (var j = 0; j < triangle.length; j++) {
-    const projected_point = triangle[j];
+  // TODO: Handle 2 points with same min x (go right to left instead?)
 
-    const canvas_point = projected_relative_to_canvas(projected_point, layer.canvas);
+  const ratio_0_to_1 = (triangle[1].y - triangle[0].y) / (triangle[1].x - triangle[0].x);
+  const ratio_0_to_2 = (triangle[2].y - triangle[0].y) / (triangle[2].x - triangle[0].x);
+  const ratio_1_to_2 = (triangle[2].y - triangle[1].y) / (triangle[2].x - triangle[1].x);
 
-    if (j === 0) {
-      layer.context.moveTo(canvas_point.x, canvas_point.y);
-    }
-    else {
-      layer.context.lineTo(canvas_point.x, canvas_point.y);
+  // TODO: limit these loops based on canvas size
+  for (var x = Math.max(0, triangle[0].x); x < Math.min(triangle[1].x, layer.canvas.width); x++) {
+    const x_offset = x - triangle[0].x;
+
+    var y_limits = [
+      Math.max(0, Math.floor(triangle[0].y + (x_offset * ratio_0_to_1))),
+      Math.min(Math.floor(triangle[0].y + (x_offset * ratio_0_to_2)), layer.canvas.height)
+    ];
+
+    y_limits.sort();
+
+    for (var y = y_limits[0]; y < y_limits[1]; y++) {
+      draw_pixel(layer, {x:x, y:y}, 1, colour);
     }
   }
 
-  layer.context.fill();
-  layer.context.closePath();
+  for (var x = Math.max(0, triangle[1].x); x < Math.min(triangle[2].x, layer.canvas.width); x++) {
+    // const x_offset = x - triangle[1].x;
+
+    var y_limits = [
+      Math.max(0, Math.floor(triangle[0].y + ((x - triangle[0].x) * ratio_0_to_2))),
+      Math.min(Math.floor(triangle[1].y + ((x - triangle[1].x) * ratio_1_to_2)))
+    ];
+
+    y_limits.sort();
+
+    for (var y = y_limits[0]; y < y_limits[1]; y++) {
+      draw_pixel(layer, { x: x, y: y }, 1, colour);
+    }
+  }
+
+  // for (var j = 0; j < triangle.length; j++) {
+  //   const projected_point = triangle[j];
+
+    // const canvas_point = projected_relative_to_canvas(projected_point, layer.canvas);
+
+    // draw_pixel(layer, projected_point, 1, colour);
+
+    // if (j === 0) {
+    //   layer.context.moveTo(canvas_point.x, canvas_point.y);
+    // }
+    // else {
+    //   layer.context.lineTo(canvas_point.x, canvas_point.y);
+    // }
+  // }
+
+  // layer.context.fill();
+  // layer.context.closePath();
+}
+
+function draw_pixel(layer, point, relative_z, colour) {
+  // TODO: check z buffer
+
+  if (point.x < 0 || point.y < 0 || point.x > layer.canvas.width || point.y > layer.canvas.width) {
+    return;
+  }
+
+  const data_start = ((point.y * layer.canvas.width) + point.x) * 4; // 4 as each pixel has 4 elements - RGBA
+  layer.bitmap.data[data_start] = colour[0];
+  layer.bitmap.data[data_start + 1] = colour[1];
+  layer.bitmap.data[data_start +2] = colour[2];
+  layer.bitmap.data[data_start] = 255;
+
+  // layer.context.fillStyle = `rgb(${colour.join(', ')})`;
+  // layer.context.fillRect(point.x, point.y, 1, 1);
 }
 
 // function two_points_to_line(point_a, point_b) {
@@ -454,14 +519,14 @@ function draw_triangle(triangle, layer, colour) {
 // }
 
 function projected_relative_to_canvas(relative_point, canvas) {
-  const point_as_multiplier = {
+  const point_with_aspect_ratio = {
     x: relative_point.x / width_of_view,
     y: relative_point.y / height_of_view
   };
 
   return {
-    x: Math.round(point_as_multiplier.x * canvas.width) + (canvas.width / 2),
-    y: Math.round(point_as_multiplier.y * canvas.height) + (canvas.height / 2)
+    x: Math.floor((point_with_aspect_ratio.x * canvas.width) + (canvas.width / 2)),
+    y: Math.floor((point_with_aspect_ratio.y * canvas.height) + (canvas.height / 2))
   };
 }
 
