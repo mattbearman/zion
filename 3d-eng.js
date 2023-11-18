@@ -476,7 +476,7 @@ function draw_pixel(layer, point, relative_z, colour) {
   layer.bitmap.data[data_start] = colour[0];
   layer.bitmap.data[data_start + 1] = colour[1];
   layer.bitmap.data[data_start +2] = colour[2];
-  layer.bitmap.data[data_start] = 255;
+  layer.bitmap.data[data_start + 3] = 255;
 }
 
 // function two_points_to_line(point_a, point_b) {
