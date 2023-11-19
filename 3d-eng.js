@@ -16,25 +16,27 @@ fps_display.style.right = '10px';
 document.body.appendChild(fps_display);
 
 var layers = {
-  world_grid: {
-    canvas: document.createElement("canvas"),
-    context: null,
-    size: 1,
-    zIndex: 200,
-    bitmap: null
-  },
+  // world_grid: {
+  //   canvas: document.createElement("canvas"),
+  //   context: null,
+  //   size: 1,
+  //   zIndex: 200,
+  //   bitmap: null,
+  //   width: null,
+  //   height: null
+  // },
   map_grid: {
     canvas: document.createElement("canvas"),
     context: null,
     size: 0.25,
     zIndex: 150
   },
-  debug: {
-    canvas: document.createElement("canvas"),
-    context: null,
-    size: 1,
-    zIndex: 100
-  },
+  // debug: {
+  //   canvas: document.createElement("canvas"),
+  //   context: null,
+  //   size: 1,
+  //   zIndex: 100
+  // },
   map: {
     canvas: document.createElement("canvas"),
     context: null,
@@ -45,7 +47,10 @@ var layers = {
     canvas: document.createElement("canvas"),
     context: null,
     size: 1,
-    zIndex: 0
+    zIndex: 0,
+      bitmap: null,
+      width: null,
+      height: null
   }
 };
 
@@ -55,10 +60,13 @@ const drawable_height = 600;
 for(key in layers) {
   var layer = layers[key];
 
-  layer.context = layer.canvas.getContext('2d');
+  layer.context = layer.canvas.getContext('2d', { alpha: false, desynchronized: true });
 
-  layer.canvas.width = Math.round(drawable_width * layer.size);
-  layer.canvas.height = Math.round(drawable_height * layer.size);
+  layer.width = Math.round(drawable_width * layer.size);
+  layer.height = Math.round(drawable_height * layer.size);
+
+  layer.canvas.width = layer.width;
+  layer.canvas.height = layer.height;
 
   layer.canvas.style.position = 'absolute';
   layer.canvas.style.top = 0;
@@ -73,32 +81,32 @@ layers.map_grid.context.strokeStyle = "rgb(50, 50, 50)";
 
 layers.map_grid.context.beginPath();
 
-layers.map_grid.context.moveTo(0, layers.map_grid.canvas.height / 2);
-layers.map_grid.context.lineTo(layers.map_grid.canvas.width, layers.map_grid.canvas.height / 2);
+layers.map_grid.context.moveTo(0, layers.map_grid.height / 2);
+layers.map_grid.context.lineTo(layers.map_grid.width, layers.map_grid.height / 2);
 
-layers.map_grid.context.moveTo(layers.map_grid.canvas.width / 2, 0);
-layers.map_grid.context.lineTo(layers.map_grid.canvas.width / 2, layers.map_grid.canvas.height);
+layers.map_grid.context.moveTo(layers.map_grid.width / 2, 0);
+layers.map_grid.context.lineTo(layers.map_grid.width / 2, layers.map_grid.height);
 
 layers.map_grid.context.stroke();
 layers.map_grid.context.closePath();
 
 
 // world grid
-layers.world_grid.canvas.style.display = 'none';
-layers.world_grid.context.strokeStyle = "rgb(150, 150, 150)";
+// layers.world_grid.canvas.style.display = 'none';
+// layers.world_grid.context.strokeStyle = "rgb(150, 150, 150)";
 
-layers.world_grid.context.beginPath();
+// layers.world_grid.context.beginPath();
 
-for (var i = 0.1; i < 1; i += 0.1) {
-  layers.world_grid.context.moveTo(layers.world_grid.canvas.width * i, 0);
-  layers.world_grid.context.lineTo(layers.world_grid.canvas.width * i, layers.world_grid.canvas.height);
+// for (var i = 0.1; i < 1; i += 0.1) {
+//   layers.world_grid.context.moveTo(layers.world_grid.width * i, 0);
+//   layers.world_grid.context.lineTo(layers.world_grid.width * i, layers.world_grid.height);
 
-  layers.world_grid.context.moveTo(0, layers.world_grid.canvas.height * i);
-  layers.world_grid.context.lineTo(layers.world_grid.canvas.width, layers.world_grid.canvas.height * i);
-}
+//   layers.world_grid.context.moveTo(0, layers.world_grid.height * i);
+//   layers.world_grid.context.lineTo(layers.world_grid.width, layers.world_grid.height * i);
+// }
 
-layers.world_grid.context.stroke();
-layers.world_grid.context.closePath();
+// layers.world_grid.context.stroke();
+// layers.world_grid.context.closePath();
 
 const fov = 90; // degrees
 
@@ -118,8 +126,8 @@ var height_of_view = width_of_view / aspect_ratio;
 var camera = {
   x: 0,
   y: 1.75,
-  z: 1,
-  yaw: 0,
+  z: 10,
+  yaw: 90 * (Math.PI / 180),
   pitch: 0,
   roll: 0
 };
@@ -209,18 +217,18 @@ const cube = {
 function render_scene() {
   const start_time = performance.now();
 
-  layers.debug.context.clearRect(0, 0, layers.debug.canvas.width, layers.debug.canvas.height);
-  layers.map.context.clearRect(0, 0, layers.map.canvas.width, layers.map.canvas.height);
-  layers.world.context.clearRect(0, 0, layers.world.canvas.width, layers.world.canvas.height);
+  // layers.debug.context.clearRect(0, 0, layers.debug.width, layers.debug.height);
+  layers.map.context.clearRect(0, 0, layers.map.width, layers.map.height);
+  layers.world.context.clearRect(0, 0, layers.world.width, layers.world.height);
 
   layers.world.context.fillStyle = "rgb(200, 200, 200)";
-  layers.world.context.fillRect(0, 0, layers.world.canvas.width, layers.world.canvas.height);
+  layers.world.context.fillRect(0, 0, layers.world.width, layers.world.height);
 
   // map bg
   layers.map.context.fillStyle = "rgb(150, 150, 150)";
-  layers.map.context.fillRect(0, 0, layers.map.canvas.width, layers.map.canvas.height);
+  layers.map.context.fillRect(0, 0, layers.map.width, layers.map.height);
 
-  layers.world.bitmap = layers.world.context.getImageData(0, 0, layers.world.canvas.width, layers.world.canvas.height);
+  layers.world.bitmap = layers.world.context.createImageData(layers.world.width, layers.world.height);
 
   render_object(cube);
 
@@ -308,8 +316,8 @@ function render_object(object) {
     layers.map.context.beginPath();
 
     for (j = 0; j < localised_triangle.length; j++) {
-      var x = (localised_triangle[j].x * 10) + (layers.map.canvas.width / 2);
-      var z = (layers.map.canvas.height / 2) - (localised_triangle[j].z * 10);
+      var x = (localised_triangle[j].x * 10) + (layers.map.width / 2);
+      var z = (layers.map.height / 2) - (localised_triangle[j].z * 10);
 
       if (j === 0) {
         layers.map.context.moveTo(x, z);
@@ -422,7 +430,7 @@ function light_face(triangle, light) {
 function draw_triangle(triangle, layer, colour) {
   // Turn relative point coords to pixel coords
   for (var i = 0; i < triangle.length; i++) {
-    triangle[i] = projected_relative_to_canvas(triangle[i], layer.canvas);
+    triangle[i] = projected_relative_to_canvas(triangle[i], layer);
   }
 
   // sort points so left most is first
@@ -434,7 +442,7 @@ function draw_triangle(triangle, layer, colour) {
   const ratio_0_to_2 = (triangle[2].y - triangle[0].y) / (triangle[2].x - triangle[0].x);
   const ratio_1_to_2 = (triangle[2].y - triangle[1].y) / (triangle[2].x - triangle[1].x);
 
-  for (var x = Math.max(0, triangle[0].x); x < Math.min(triangle[1].x, layer.canvas.width); x++) {
+  for (var x = Math.max(0, triangle[0].x); x < Math.min(triangle[1].x, layer.width); x++) {
     const x_offset = x - triangle[0].x;
 
     var y_limits = [
@@ -443,21 +451,21 @@ function draw_triangle(triangle, layer, colour) {
     ].sort((a, b) => a > b);
 
     y_limits[0] = Math.max(0, y_limits[0]);
-    y_limits[1] = Math.min(y_limits[1], layer.canvas.height);
+    y_limits[1] = Math.min(y_limits[1], layer.height);
 
     for (var y = y_limits[0]; y < y_limits[1]; y++) {
       draw_pixel(layer, { x: x, y: y }, 1, colour);
     }
   }
 
-  for (var x = Math.max(0, triangle[1].x); x < Math.min(triangle[2].x, layer.canvas.width); x++) {
+  for (var x = Math.max(0, triangle[1].x); x < Math.min(triangle[2].x, layer.width); x++) {
     var y_limits = [
       Math.floor(triangle[0].y + ((x - triangle[0].x) * ratio_0_to_2)),
       Math.floor(triangle[1].y + ((x - triangle[1].x) * ratio_1_to_2))
     ].sort((a, b) => a > b);
 
     y_limits[0] = Math.max(0, y_limits[0]);
-    y_limits[1] = Math.min(y_limits[1], layer.canvas.height);
+    y_limits[1] = Math.min(y_limits[1], layer.height);
 
     for (var y = y_limits[0]; y < y_limits[1]; y++) {
       draw_pixel(layer, { x: x, y: y }, 1, colour);
@@ -468,11 +476,11 @@ function draw_triangle(triangle, layer, colour) {
 function draw_pixel(layer, point, relative_z, colour) {
   // TODO: check z buffer
 
-  if (point.x < 0 || point.y < 0 || point.x > layer.canvas.width || point.y > layer.canvas.width) {
+  if (point.x < 0 || point.y < 0 || point.x > layer.width || point.y > layer.width) {
     return;
   }
 
-  const data_start = ((point.y * layer.canvas.width) + point.x) * 4; // 4 as each pixel has 4 elements - RGBA
+  const data_start = ((point.y * layer.width) + point.x) * 4; // 4 as each pixel has 4 elements - RGBA
   layer.bitmap.data[data_start] = colour[0];
   layer.bitmap.data[data_start + 1] = colour[1];
   layer.bitmap.data[data_start +2] = colour[2];
@@ -502,15 +510,15 @@ function draw_pixel(layer, point, relative_z, colour) {
 //   };
 // }
 
-function projected_relative_to_canvas(relative_point, canvas) {
+function projected_relative_to_canvas(relative_point, layer) {
   const point_with_aspect_ratio = {
     x: relative_point.x / width_of_view,
     y: relative_point.y / height_of_view
   };
 
   return {
-    x: Math.floor((point_with_aspect_ratio.x * canvas.width) + (canvas.width / 2)),
-    y: Math.floor((point_with_aspect_ratio.y * canvas.height) + (canvas.height / 2))
+    x: Math.floor((point_with_aspect_ratio.x * layer.width) + (layer.width / 2)),
+    y: Math.floor((point_with_aspect_ratio.y * layer.height) + (layer.height / 2))
   };
 }
 
