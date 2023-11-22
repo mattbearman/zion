@@ -9,6 +9,8 @@ var pressed_keys = {};
 
 var log_frame = false;
 
+var z_buffer = Array(800 * 600);
+
 const fps_display = document.createElement('span');
 fps_display.style.position = 'absolute';
 fps_display.style.top = '10px';
@@ -236,6 +238,8 @@ function render_scene() {
 
   layers.world.context.putImageData(layers.world.bitmap, 0, 0);
 
+  z_buffer = Array(800 * 600);
+
   log_frame = false;
 
   const execution_time = performance.now() - start_time;
@@ -387,8 +391,9 @@ function project_point(point) {
 
   return {
     x: proj_x,
-    y: -proj_y
-  }
+    y: -proj_y,
+    world_z: point.z
+  };
 }
 
 function visible_point_on_line(from, to) {
@@ -436,7 +441,48 @@ function draw_triangle(triangle, layer, colour) {
   // sort points so left most is first
   triangle.sort((a, b) => a.x > b.x);
 
-  // TODO: Handle 2 points with same min x (go right to left instead?)
+  // to figure out world z value of each pixel, we need to apply multipliers to the x and y offset from known points
+  // formula is: dZ = (dX * aX) + (dY * aY) where d is delta (change) and a is alpha (multiplier)
+  // this becomes aX = ((dZ2 / dY2) - (dZ1 / dY1) / (dX2 / dY2) / (dX1 / dY1))
+  // where dZ1 = the change in Z between the two points on line 1, and dY2 is the change in Y between the two points on line 2
+  // just gonna have to trust my self on this one, I algebra'd the shit out of it
+  // Can't use a line where Z doesn't change (eg: [1, 2, 3] -> [4, 5, 3]) and if there are two lines with unchanging Z
+  // values, then the whole triangle must have a constant Z, as you can't have 2 sides stay the same and one change
+
+  // calculate the change in x, y and z for each line, and sort by delta z descending, to avoid lines where z doesn't change
+  const deltas = [
+    // line from 0 to 1
+    {
+      x: triangle[1].x - triangle[0].x,
+      y: triangle[1].y - triangle[0].y,
+      z: triangle[1].world_z - triangle[0].world_z,
+    },
+    // line from 1 to 2
+    {
+      x: triangle[2].x - triangle[1].x,
+      y: triangle[2].y - triangle[1].y,
+      z: triangle[2].world_z - triangle[1].world_z,
+    },
+    // line from 2 to 0
+    {
+      x: triangle[0].x - triangle[2].x,
+      y: triangle[0].y - triangle[2].y,
+      z: triangle[0].world_z - triangle[2].world_z,
+    }
+  ].filter((delta) => delta.z != 0);
+
+  // if z doesn't change, use constant world z for all pixels
+  if (deltas.length == 0) {
+    var z = triangle[0].world_z;
+  }
+  else {
+    var z_multiplier_x =
+      ((deltas[1].z / deltas[1].y) - (deltas[0].z / deltas[0].y))
+      /
+      ((deltas[1].x / deltas[1].y) - (deltas[0].x / deltas[0].y));
+
+    var z_multiplier_y = ((-deltas[0].x / deltas[0].y) * z_multiplier_x) + (deltas[0].z / deltas[0].y);
+  }
 
   const ratio_0_to_1 = (triangle[1].y - triangle[0].y) / (triangle[1].x - triangle[0].x);
   const ratio_0_to_2 = (triangle[2].y - triangle[0].y) / (triangle[2].x - triangle[0].x);
@@ -454,11 +500,18 @@ function draw_triangle(triangle, layer, colour) {
     y_limits[1] = Math.min(y_limits[1], layer.height);
 
     for (var y = y_limits[0]; y < y_limits[1]; y++) {
-      draw_pixel(layer, { x: x, y: y }, 1, colour);
+      if (typeof z == 'undefined') {
+        const y_offset = y - triangle[0].y;
+        var z = (x_offset * z_multiplier_x) + (y_offset * z_multiplier_y);
+      }
+
+      draw_pixel(layer, { x: x, y: y }, z, colour);
     }
   }
 
   for (var x = Math.max(0, triangle[1].x); x < Math.min(triangle[2].x, layer.width); x++) {
+    const x_offset = x - triangle[0].x;
+
     var y_limits = [
       Math.floor(triangle[0].y + ((x - triangle[0].x) * ratio_0_to_2)),
       Math.floor(triangle[1].y + ((x - triangle[1].x) * ratio_1_to_2))
@@ -468,23 +521,34 @@ function draw_triangle(triangle, layer, colour) {
     y_limits[1] = Math.min(y_limits[1], layer.height);
 
     for (var y = y_limits[0]; y < y_limits[1]; y++) {
-      draw_pixel(layer, { x: x, y: y }, 1, colour);
+      if (typeof z == 'undefined') {
+        const y_offset = y - triangle[0].y;
+        var z = (x_offset * z_multiplier_x) + (y_offset * z_multiplier_y);
+      }
+
+      draw_pixel(layer, { x: x, y: y }, z, colour);
     }
   }
 }
 
 function draw_pixel(layer, point, relative_z, colour) {
-  // TODO: check z buffer
-
   if (point.x < 0 || point.y < 0 || point.x > layer.width || point.y > layer.width) {
     return;
   }
 
-  const data_start = ((point.y * layer.width) + point.x) * 4; // 4 as each pixel has 4 elements - RGBA
+  const one_dimensional_index = (point.y * layer.width) + point.x;
+
+  if (z_buffer[one_dimensional_index] && z_buffer[one_dimensional_index] > relative_z) {
+    return;
+  }
+
+  const data_start = one_dimensional_index * 4; // 4 as each pixel has 4 elements - RGBA
+
   layer.bitmap.data[data_start] = colour[0];
   layer.bitmap.data[data_start + 1] = colour[1];
   layer.bitmap.data[data_start +2] = colour[2];
   layer.bitmap.data[data_start + 3] = 255;
+  z_buffer[one_dimensional_index] = relative_z;
 }
 
 // function two_points_to_line(point_a, point_b) {
@@ -518,7 +582,8 @@ function projected_relative_to_canvas(relative_point, layer) {
 
   return {
     x: Math.floor((point_with_aspect_ratio.x * layer.width) + (layer.width / 2)),
-    y: Math.floor((point_with_aspect_ratio.y * layer.height) + (layer.height / 2))
+    y: Math.floor((point_with_aspect_ratio.y * layer.height) + (layer.height / 2)),
+    world_z: relative_point.world_z
   };
 }
 
