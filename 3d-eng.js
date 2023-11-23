@@ -128,14 +128,52 @@ var height_of_view = width_of_view / aspect_ratio;
 var camera = {
   x: 0,
   y: 1.75,
-  z: 10,
-  yaw: 90 * (Math.PI / 180),
+  z: 0,
+  yaw: 0, //90 * (Math.PI / 180),
   pitch: 0,
   roll: 0
 };
 
 const sun = {
   x: -2, y: 20, z: -5
+};
+
+const cross = {
+  origin: { x: 0, y: 2, z: 10 },
+  polygons: [
+    {
+      colour: [0, 50, 170],
+      points: [
+        { x: -0.8, y: -0.8, z: -1 },
+        { x: 0.8, y: 0.8, z: -1 },
+        { x: -0.8, y: -0.8, z: 1 }
+      ]
+    },
+    {
+      colour: [0, 50, 170],
+      points: [
+        { x: -0.8, y: -0.8, z: 1 },
+        { x: 0.8, y: 0.8, z: -1 },
+        { x: 0.8, y: 0.8, z: 1 }
+      ]
+    },
+    {
+      colour: [0, 70, 220],
+      points: [
+        { x: 0.8, y: -0.8, z: -1 },
+        { x: -0.8, y: 0.8, z: -1 },
+        { x: 0.8, y: -0.8, z: 1 }
+      ]
+    },
+    {
+      colour: [0, 70, 220],
+      points: [
+        { x: 0.8, y: -0.8, z: 1 },
+        { x: -0.8, y: 0.8, z: -1 },
+        { x: -0.8, y: 0.8, z: 1 }
+      ]
+    },
+  ]
 };
 
 const cube = {
@@ -233,6 +271,7 @@ function render_scene() {
   layers.world.bitmap = layers.world.context.createImageData(layers.world.width, layers.world.height);
 
   render_object(cube);
+  render_object(cross);
 
   frame_counter++;
 
@@ -469,7 +508,7 @@ function draw_triangle(triangle, layer, colour) {
       y: triangle[0].y - triangle[2].y,
       z: triangle[0].world_z - triangle[2].world_z,
     }
-  ].filter((delta) => delta.z != 0);
+  ].filter((delta) => !pretty_much_zero(delta.z));
 
   // if z doesn't change, use constant world z for all pixels
   if (deltas.length < 2) {
