@@ -472,10 +472,12 @@ function draw_triangle(triangle, layer, colour) {
   ].filter((delta) => delta.z != 0);
 
   // if z doesn't change, use constant world z for all pixels
-  if (deltas.length == 0) {
-    var z = triangle[0].world_z;
+  if (deltas.length < 2) {
+    var perpendicular = true;
   }
   else {
+    var perpendicular = false;
+
     var z_multiplier_x =
       ((deltas[1].z / deltas[1].y) - (deltas[0].z / deltas[0].y))
       /
@@ -500,9 +502,12 @@ function draw_triangle(triangle, layer, colour) {
     y_limits[1] = Math.min(y_limits[1], layer.height);
 
     for (var y = y_limits[0]; y < y_limits[1]; y++) {
-      if (typeof z == 'undefined') {
+      if (perpendicular) {
+        var z = triangle[0].world_z;
+      }
+      else {
         const y_offset = y - triangle[0].y;
-        var z = (x_offset * z_multiplier_x) + (y_offset * z_multiplier_y);
+        var z = triangle[0].world_z + (x_offset * z_multiplier_x) + (y_offset * z_multiplier_y);
       }
 
       draw_pixel(layer, { x: x, y: y }, z, colour);
@@ -521,9 +526,12 @@ function draw_triangle(triangle, layer, colour) {
     y_limits[1] = Math.min(y_limits[1], layer.height);
 
     for (var y = y_limits[0]; y < y_limits[1]; y++) {
-      if (typeof z == 'undefined') {
+      if (perpendicular) {
+        var z = triangle[0].world_z;
+      }
+      else {
         const y_offset = y - triangle[0].y;
-        var z = (x_offset * z_multiplier_x) + (y_offset * z_multiplier_y);
+        var z = triangle[0].world_z + (x_offset * z_multiplier_x) + (y_offset * z_multiplier_y);
       }
 
       draw_pixel(layer, { x: x, y: y }, z, colour);
@@ -538,7 +546,7 @@ function draw_pixel(layer, point, relative_z, colour) {
 
   const one_dimensional_index = (point.y * layer.width) + point.x;
 
-  if (z_buffer[one_dimensional_index] && z_buffer[one_dimensional_index] > relative_z) {
+  if (z_buffer[one_dimensional_index] && z_buffer[one_dimensional_index] <= relative_z) {
     return;
   }
 
