@@ -2,6 +2,8 @@
 
 A very basic 3D engine written entirely in vanilla JavaScript
 
+https://github.com/mattbearman/zion/assets/717345/76bd1dbc-d4bc-4a11-bb48-b865a2dff173
+
 ## Why?
 
 My aim with Zion was to create a 3D engine as if it was 1993, with as little prior knowledge as possible, and see what I could figure out on my own.
