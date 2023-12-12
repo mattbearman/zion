@@ -177,7 +177,7 @@ const cross = {
 };
 
 const cube = {
-  origin: { x: 0, y: 2, z: 10 },
+  origin: { x: -3, y: 2, z: 10 },
   polygons: [
     {
       colour: [255, 0, 0],
@@ -483,12 +483,12 @@ function draw_triangle(triangle, layer, colour) {
   // to figure out world z value of each pixel, we need to apply multipliers to the x and y offset from known points
   // formula is: dZ = (dX * aX) + (dY * aY) where d is delta (change) and a is alpha (multiplier)
   // this becomes aX = ((dZ2 / dY2) - (dZ1 / dY1) / (dX2 / dY2) / (dX1 / dY1))
-  // where dZ1 = the change in Z between the two points on line 1, and dY2 is the change in Y between the two points on line 2
-  // just gonna have to trust my self on this one, I algebra'd the shit out of it
+  // where dZ1 = the change in Z between the two points on line 1, and dY2 is the change in Y between the two points on line 2, etc
+  // just gonna have to trust myself on this one, I algebra'd the shit out of it
   // Can't use a line where Z doesn't change (eg: [1, 2, 3] -> [4, 5, 3]) and if there are two lines with unchanging Z
   // values, then the whole triangle must have a constant Z, as you can't have 2 sides stay the same and one change
 
-  // calculate the change in x, y and z for each line, and sort by delta z descending, to avoid lines where z doesn't change
+  // calculate the change in x, y and z for each line, removing any where Z doesn't change, as we can't use those
   const deltas = [
     // line from 0 to 1
     {
@@ -585,7 +585,7 @@ function draw_pixel(layer, point, relative_z, colour) {
 
   const one_dimensional_index = (point.y * layer.width) + point.x;
 
-  if (z_buffer[one_dimensional_index] && z_buffer[one_dimensional_index] <= relative_z) {
+  if (z_buffer[one_dimensional_index] && z_buffer[one_dimensional_index] < relative_z) {
     return;
   }
 
@@ -593,7 +593,7 @@ function draw_pixel(layer, point, relative_z, colour) {
 
   layer.bitmap.data[data_start] = colour[0];
   layer.bitmap.data[data_start + 1] = colour[1];
-  layer.bitmap.data[data_start +2] = colour[2];
+  layer.bitmap.data[data_start + 2] = colour[2];
   layer.bitmap.data[data_start + 3] = 255;
   z_buffer[one_dimensional_index] = relative_z;
 }
