@@ -2,7 +2,6 @@
 
 A very basic 3D engine written entirely in vanilla JavaScript
 
-
 ## Why?
 
 My aim with Zion was to create a 3D engine as if it was 1993, with as little prior knowledge as possible, and see what I could figure out on my own.
@@ -14,10 +13,9 @@ This is why there is no matrix maths in this repo - I know matrices exist, and a
 
 ## What?
 
-So far Zion supports flat shaded polygons, and that's about it. Coming in future updates is:
+So far Zion supports flat shaded polygons, a mostly working z-buffer, and that's about it. Coming in future updates is:
 
  - Separate engine from content
- - z-buffering
  - Back face culling
  - Full object transformations
  - Lighting
